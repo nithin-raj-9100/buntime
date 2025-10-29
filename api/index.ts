@@ -1,16 +1,5 @@
 import { Database } from "bun:sqlite";
 
-const db = new Database(":memory:"); // In-memory DB for serverless
-
-db.run(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
 interface User {
   id?: number;
   name: string;
@@ -18,15 +7,39 @@ interface User {
   created_at?: string;
 }
 
-const queries = {
-  getAllUsers: db.query("SELECT * FROM users"),
-  getUserById: db.query("SELECT * FROM users WHERE id = ?"),
-  createUser: db.query("INSERT INTO users (name, email) VALUES (?, ?) RETURNING *"),
-  updateUser: db.query("UPDATE users SET name = ?, email = ? WHERE id = ? RETURNING *"),
-  deleteUser: db.query("DELETE FROM users WHERE id = ?"),
-};
+let db: Database | null = null;
+let queries: any = null;
+
+function initDB() {
+  if (db) return;
+
+  try {
+    db = new Database(":memory:");
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    queries = {
+      getAllUsers: db.query("SELECT * FROM users"),
+      getUserById: db.query("SELECT * FROM users WHERE id = ?"),
+      createUser: db.query("INSERT INTO users (name, email) VALUES (?, ?) RETURNING *"),
+      updateUser: db.query("UPDATE users SET name = ?, email = ? WHERE id = ? RETURNING *"),
+      deleteUser: db.query("DELETE FROM users WHERE id = ?"),
+    };
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+  }
+}
 
 export default async function handler(req: Request): Promise<Response> {
+  initDB();
+
   const url = new URL(req.url);
   const path = url.pathname;
   const method = req.method;
@@ -36,6 +49,7 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({
       message: "Bun API on Vercel",
       bunVersion: process.versions.bun,
+      dbInitialized: db !== null,
       endpoints: [
         "GET /api/users - Get all users",
         "GET /api/users/:id - Get user by ID",
@@ -51,6 +65,13 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({
       apiUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
     });
+  }
+
+  if (!queries) {
+    return Response.json(
+      { error: "Database not initialized" },
+      { status: 500 }
+    );
   }
 
   // GET /api/users
