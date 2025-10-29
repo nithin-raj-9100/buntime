@@ -90,7 +90,7 @@ export default async function handler(req: Request): Promise<Response> {
   // Match /api/users/:id routes
   const userIdMatch = path.match(/^\/api\/users\/(\d+)$/);
   if (userIdMatch) {
-    const id = parseInt(userIdMatch[1]);
+    const id = parseInt(userIdMatch[1]!);
 
     // GET /api/users/:id
     if (method === "GET") {
