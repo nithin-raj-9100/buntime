@@ -1,4 +1,9 @@
 {
-  "bunVersion": "1.x"
+  "bunVersion": "1.x",
+  "rewrites": [
+    { "source": "/config", "destination": "/api" },
+    { "source": "/users", "destination": "/api" },
+    { "source": "/users/:id", "destination": "/api" }
+  ]
 }
 
