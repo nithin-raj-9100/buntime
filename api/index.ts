@@ -46,6 +46,13 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // Config endpoint
+  if (path === "/config") {
+    return Response.json({
+      apiUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
+    });
+  }
+
   // GET /api/users
   if (path === "/api/users" && method === "GET") {
     const users = queries.getAllUsers.all();
